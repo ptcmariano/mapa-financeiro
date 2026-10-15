@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore sua relação com o dinheiro, reconheça padrões e crie um plano de pequenas ações para os próximos 30 dias.">
+  <title>Mapa Financeiro — sua relação com o dinheiro</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="brand"><span aria-hidden="true">🧭</span> Mapa Financeiro <span class="brand-detail">Consciência para suas escolhas</span></header>
+    <section id="quiz" aria-label="Reflexão financeira">
+      <div class="progress-row">
+        <button class="close" type="button" onclick="restart()" aria-label="Recomeçar">↺</button>
+        <div class="progress" id="progress" role="progressbar" aria-label="Perguntas concluídas" aria-valuemin="0" aria-valuemax="7" aria-valuenow="0"><div id="bar"></div></div>
+        <span class="count" id="count"></span>
+      </div>
+      <article class="card" id="card"></article>
+    </section>
+    <section id="result" class="card" aria-label="Seu Mapa Financeiro" hidden></section>
+    <footer>Uma reflexão sobre seu momento. Seus padrões podem mudar com a vida.</footer>
+    <noscript><p class="context">Ative o JavaScript do navegador para responder às perguntas. Suas respostas são processadas apenas nesta página.</p></noscript>
+  </main>
+  <script>
+    const archetypes = [
+      { id: 'construtor', name: 'O Construtor', pattern: 'Cria projetos e oportunidades para gerar riqueza.', strength: 'Capacidade de desenvolver projetos e novas fontes de renda.', risk: 'Construir e planejar muito sem converter o esforço em receita.' },
+      { id: 'protetor', name: 'O Protetor', pattern: 'Busca segurança, estabilidade e proteção contra imprevistos.', strength: 'Atenção à segurança e à continuidade da vida financeira.', risk: 'Evitar riscos mesmo quando são calculados e compatíveis com sua realidade.' },
+      { id: 'acumulador', name: 'O Acumulador', pattern: 'Valoriza guardar dinheiro e preservar o patrimônio.', strength: 'Constância para guardar e preservar recursos.', risk: 'Acumular sem definir um propósito ou espaço para desfrutar.' },
+      { id: 'realizador', name: 'O Realizador', pattern: 'Usa o dinheiro para conquistar objetivos, conforto e experiências.', strength: 'Conexão entre dinheiro, conquistas e qualidade de vida.', risk: 'Aumentar gastos para celebrar conquistas ou manter um padrão de vida.' },
+      { id: 'cuidador', name: 'O Cuidador', pattern: 'Prioriza o bem-estar da família e das pessoas próximas.', strength: 'Sensibilidade às necessidades e ao cuidado com outras pessoas.', risk: 'Assumir responsabilidades que comprometam sua própria estabilidade.' },
+      { id: 'libertador', name: 'O Libertador', pattern: 'Busca autonomia, independência e liberdade de escolha.', strength: 'Clareza sobre a importância da autonomia em suas escolhas.', risk: 'Rejeitar compromissos e estruturas que ajudam a sustentar a liberdade.' },
+      { id: 'investidor', name: 'O Investidor', pattern: 'Procura fazer o patrimônio crescer por meio de decisões estratégicas.', strength: 'Interesse em analisar alternativas e pensar no longo prazo.', risk: 'Superestimar a própria capacidade ou perseguir retornos com risco excessivo.' },
+      { id: 'empreendedor', name: 'O Empreendedor', pattern: 'Identifica oportunidades comerciais e transforma ideias em negócios.', strength: 'Iniciativa para negociar, vender e gerar receita.', risk: 'Confundir faturamento com lucro ou reinvestir sem controle.' },
+      { id: 'evitador', name: 'O Evitador', pattern: 'Adia decisões financeiras quando elas geram desconforto.', strength: 'Reconhecer o desconforto pode abrir espaço para buscar apoio e agir aos poucos.', risk: 'Deixar prazos e problemas crescerem ao adiar decisões.' },
+      { id: 'impulsivo', name: 'O Impulsivo', pattern: 'Tende a decidir sob influência das emoções e das oportunidades do momento.', strength: 'Perceber o que desperta satisfação pode ajudar a planejar recompensas possíveis.', risk: 'Comprometer objetivos futuros com decisões imediatas.' },
+      { id: 'agradador', name: 'O Agradador', pattern: 'Usa recursos para obter aceitação ou evitar conflitos.', strength: 'Perceber o peso das relações ajuda a construir limites mais claros.', risk: 'Gastar para agradar, emprestar além da capacidade ou cobrar menos do que precisa.' },
+      { id: 'idealista', name: 'O Idealista', pattern: 'Prioriza propósito, valores e impacto social.', strength: 'Coerência entre o uso do dinheiro e seus valores.', risk: 'Deixar a sustentabilidade financeira de seus projetos em segundo plano.' }
+    ];
+    const questions = [
+      {
+        id: 'emocao', theme: 'Relação emocional', icon: '💭', title: 'Quando pensa nas suas finanças hoje, qual é a primeira sensação que aparece?',
+        help: 'Conte um exemplo do seu momento. Sua renda, suas responsabilidades e suas oportunidades também fazem parte dessa história.'
+      },
+      {
+        id: 'decisao', theme: 'Tomada de decisão', icon: '🪙', title: 'Se recebesse um dinheiro extra hoje, qual seria sua primeira decisão?',
+        help: 'Explique o que faria e o que pesaria na sua escolha.',
+        options: [
+          ['construtor', 'Destino a um projeto que estou construindo.'],
+          ['protetor', 'Reservo para lidar com imprevistos.'],
+          ['acumulador', 'Guardo para aumentar meu patrimônio.'],
+          ['realizador', 'Realizo um desejo ou uma experiência importante.'],
+          ['cuidador', 'Atendo uma necessidade de alguém próximo.'],
+          ['libertador', 'Uso para ampliar minha independência e minhas opções.'],
+          ['investidor', 'Analiso alternativas para fazer o dinheiro crescer.']
+        ]
+      },
+      {
+        id: 'consumo', theme: 'Consumo e recompensa', icon: '🛍️', title: 'Depois de uma compra importante, como você costuma se sentir?',
+        help: 'Pense em uma situação recente, incluindo como decidiu e o que aconteceu depois.',
+        options: [
+          ['impulsivo', 'Às vezes compro no impulso e me arrependo depois.'],
+          ['realizador', 'Vejo a compra como uma conquista ou recompensa.'],
+          ['agradador', 'A opinião de outras pessoas pesa na minha compra.'],
+          ['idealista', 'Priorizo compras alinhadas aos meus valores e ao impacto que geram.'],
+          ['acumulador', 'Mesmo podendo pagar, prefiro guardar e tenho dificuldade em desfrutar.'],
+          ['protetor', 'Confiro se a compra preserva minha segurança financeira.']
+        ]
+      },
+      {
+        id: 'futuro', theme: 'Futuro e motivação', icon: '🌱', title: 'Qual papel você gostaria que o dinheiro tivesse na sua vida nos próximos anos?',
+        help: 'Descreva o que deseja tornar possível. Se quiser, indique a motivação que mais se aproxima do seu momento.', kind: 'motivation',
+        options: ['Segurança', 'Liberdade', 'Reconhecimento', 'Cuidado', 'Realização'].map(value => [value, value])
+      },
+      {
+        id: 'renda', theme: 'Renda e oportunidades', icon: '💡', title: 'Quando aparece uma oportunidade de ganhar mais, o que costuma acontecer na prática?',
+        help: 'Pode ser uma negociação, uma venda, um projeto ou reconhecimento profissional. Considere também as oportunidades que estão disponíveis para você.',
+        options: [
+          ['construtor', 'Desenvolvo ideias e projetos para gerar renda.'],
+          ['empreendedor', 'Testo oportunidades comerciais e negocio vendas.'],
+          ['investidor', 'Comparo riscos e alternativas antes de buscar crescimento do patrimônio.'],
+          ['idealista', 'Priorizo o propósito do trabalho, mesmo quando o retorno fica em segundo plano.'],
+          ['evitador', 'Adio olhar os números ou tomar decisões que me deixam desconfortável.'],
+          ['agradador', 'Tenho dificuldade de cobrar ou negociar por receio da reação das pessoas.']
+        ]
+      },
+      {
+        id: 'relacoes', theme: 'Limites e relações', icon: '🤝', title: 'Como você lida com as expectativas financeiras de outras pessoas?',
+        help: 'Conte uma situação envolvendo ajuda, presentes, cobrança ou acordos. Obrigações essenciais de cuidado também precisam ser consideradas.',
+        options: [
+          ['cuidador', 'Priorizo o bem-estar financeiro da família e de pessoas próximas.'],
+          ['agradador', 'Aceito gastos ou pedidos para evitar conflitos ou desaprovação.'],
+          ['libertador', 'Preservo minha autonomia ao combinar compromissos financeiros.'],
+          ['evitador', 'Adio conversas e decisões sobre dinheiro quando geram desconforto.'],
+          ['empreendedor', 'Costumo negociar condições e separar os recursos do negócio dos pessoais.'],
+          ['impulsivo', 'Ofereço ajuda ou presentes sem conferir antes se cabem no orçamento.']
+        ]
+      },
+      {
+        id: 'dificuldade', theme: 'Principal dificuldade', icon: '🧩', title: 'O que mais dificulta seu avanço financeiro hoje?',
+        help: 'Conte como isso afeta sua vida. Se quiser, indique abaixo o obstáculo mais próximo da sua experiência.', kind: 'blocker',
+        options: [
+          ['estrutura', 'Renda insuficiente, dívidas ou responsabilidades essenciais'],
+          ['medo', 'Medo de tomar decisões'],
+          ['impulso', 'Compras e decisões por impulso'],
+          ['cobranca', 'Dificuldade de cobrar ou negociar'],
+          ['conflito', 'Dificuldade de estabelecer limites ou lidar com conflitos'],
+          ['planejamento', 'Planejar muito e ter dificuldade de executar'],
+          ['adiamento', 'Evitar olhar os números ou adiar decisões'],
+          ['outro', 'Outro obstáculo ou ainda não sei identificar']
+        ]
+      }
+    ];
+    const blockerActions = {
+      estrutura: ['Listar despesas essenciais e os recursos disponíveis, sem retirar cuidados necessários.', 'Separar uma dívida ou necessidade prioritária e levantar opções de negociação ou apoio.', 'Escolher uma possibilidade viável de apoio ou geração de renda e registrar o próximo passo.'],
+      medo: ['Escolher uma decisão pequena e reunir as informações necessárias.', 'Conversar com alguém de confiança sobre os riscos e limites dessa decisão.', 'Dar um primeiro passo compatível com os recursos disponíveis e registrar o aprendizado.'],
+      impulso: ['Anotar os contextos e emoções que antecedem compras não planejadas.', 'Testar uma pausa de 24 horas antes de uma compra não essencial.', 'Revisar uma decisão da semana e observar o que ajudou a respeitar seus limites.'],
+      cobranca: ['Levantar os custos e o tempo envolvidos em um serviço ou trabalho.', 'Preparar uma frase de negociação com um valor e condições sustentáveis.', 'Testar essa conversa em uma oportunidade possível e registrar o resultado.'],
+      conflito: ['Definir quanto pode oferecer sem comprometer suas necessidades essenciais.', 'Preparar uma frase respeitosa para comunicar esse limite.', 'Praticar esse limite em uma conversa e registrar como se sentiu.'],
+      planejamento: ['Escolher um único projeto e definir a menor entrega possível.', 'Reservar um período viável para executar essa entrega.', 'Concluir a entrega e revisar o que precisa mudar antes de ampliar o projeto.'],
+      adiamento: ['Reservar dez minutos para olhar uma conta ou compromisso, com apoio se precisar.', 'Escolher uma pendência e identificar seu próximo passo.', 'Fazer esse passo e combinar uma revisão breve para a semana seguinte.'],
+      outro: ['Registrar uma situação financeira que deseja compreender melhor.', 'Escolher uma mudança pequena e possível para experimentar.', 'Revisar a experiência e conversar com alguém de confiança sobre o próximo passo.']
+    };
+    let step = -1;
+    let answers = questions.map(() => ({ text: '', selected: [] }));
+    let plan = null;
+    let validation = { choice: '', text: '', saved: false };
+    let reviewWasOpen = false;
+    const card = document.querySelector('#card');
+    const result = document.querySelector('#result');
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+
+    function focusHeading() {
+      document.querySelector(result.hidden ? '#card h1' : '#result h1').focus();
+    }
+
+    function render() {
+      const completed = Math.max(0, step);
+      document.querySelector('#count').textContent = step < 0 ? 'Boas-vindas' : `${step + 1} de ${questions.length}`;
+      document.querySelector('#bar').style.width = `${completed / questions.length * 100}%`;
+      document.querySelector('#progress').setAttribute('aria-valuenow', completed);
+      if (step < 0) {
+        card.innerHTML = `<div class="intro"><div class="eyebrow">Autoconhecimento financeiro</div><div class="emoji" aria-hidden="true">🧭</div>
+          <h1 tabindex="-1">Entenda sua relação<br>com o dinheiro.</h1>
+          <p>Suas escolhas contam uma história. Vamos explorar o que você sente, o que te move e o que pode ajudar no seu próximo passo.</p>
+          <div class="stage-list"><div><span>01</span> Reflita sobre seu momento</div><div><span>02</span> Reconheça padrões e motivações</div><div><span>03</span> Escolha ações para os próximos 30 dias</div></div>
+          <p class="helper">São 7 perguntas, uma por vez, no seu ritmo. Você decide o que compartilhar e pode voltar para revisar.</p>
+          <div class="context"><strong>Um mapa, sem rótulos.</strong> Os 12 arquétipos são hipóteses para reflexão, não categorias psicológicas validadas nem uma avaliação definitiva da sua personalidade.</div>
+          <p class="privacy">Esta versão funciona no seu navegador, sem IA e sem enviar ou salvar suas respostas em um servidor. A leitura usa apenas as opções que você marcar; os textos ficam disponíveis para sua reflexão. Recarregar ou fechar a página apaga os dados. Evite informar senhas, dados bancários ou dados pessoais desnecessários.</p>
+          <div class="actions intro-actions"><span class="helper">Podemos começar?</span><button type="button" onclick="next()">Quero começar</button></div>
+          <details class="catalog"><summary>Conheça os 12 arquétipos da metodologia</summary><div class="archetype-grid">${archetypes.map(item => `<div><h3>${item.name}</h3><p>${item.pattern}</p><p class="helper"><strong>Atenção:</strong> ${item.risk}</p></div>`).join('')}</div></details>
+        </div>`;
+        return;
+      }
+      const question = questions[step];
+      const answer = answers[step];
+      let title = question.title;
+      if (question.id === 'consumo' && answers[1].selected.includes('realizador')) title = 'Quando usa o dinheiro para realizar um desejo, como costuma se sentir depois?';
+      if (question.id === 'relacoes' && answers[1].selected.includes('cuidador')) title = 'Ao ajudar pessoas próximas, como você cuida dos seus próprios limites financeiros?';
+      const options = question.options ? `<fieldset class="options"><legend>${question.kind ? 'Se quiser, escolha a opção mais próxima do seu momento.' : 'Se ajudar, marque os comportamentos que reconhece em você. Pode marcar mais de um ou nenhum.'}</legend>${question.options.map(([value, label], index) => `<label class="option" for="option-${index}"><input id="option-${index}" type="${question.kind ? 'radio' : 'checkbox'}" name="signal" value="${esc(value)}" ${answer.selected.includes(value) ? 'checked' : ''}><span>${label}</span></label>`).join('')}</fieldset>` : '';
+      card.innerHTML = `<div class="eyebrow">${question.theme}</div><div class="emoji question-icon" aria-hidden="true">${question.icon}</div>
+        <h1 id="question-title" tabindex="-1">${title}</h1><p class="helper" id="question-help">${question.help}</p>
+        ${step > 0 ? '<p class="acknowledgment">Sua resposta anterior foi registrada. Você pode revisá-la em “Voltar”.</p>' : ''}
+        <label class="field-label" for="answer">Sua resposta</label><textarea id="answer" aria-labelledby="question-title" aria-describedby="question-help error" maxlength="5000" placeholder="Escreva do seu jeito. Se ainda não souber, pode contar isso também.">${esc(answer.text)}</textarea>
+        ${options}<div class="error" id="error" role="alert"></div><div class="actions"><button type="button" class="secondary" onclick="back()">Voltar</button><button type="button" onclick="next()">${step === questions.length - 1 ? 'Ver meu mapa' : 'Continuar'}</button></div>`;
+    }
+
+    function readValue() {
+      return { text: document.querySelector('#answer').value.trim(), selected: Array.from(document.querySelectorAll('input[name="signal"]:checked'), input => input.value) };
+    }
+
+    function next() {
+      if (step < 0) {
+        step = 0;
+        render();
+        focusHeading();
+        return;
+      }
+      const value = readValue();
+      if (!value.text) {
+        document.querySelector('#error').textContent = 'Escreva uma resposta para continuar. Você também pode dizer que ainda não sabe.';
+        document.querySelector('#answer').setAttribute('aria-invalid', 'true');
+        document.querySelector('#answer').focus();
+        return;
+      }
+      if (JSON.stringify(answers[step]) !== JSON.stringify(value)) validation.saved = false;
+      answers[step] = value;
+      step++;
+      if (step === questions.length) showResult();
+      else render();
+      focusHeading();
+    }
+
+    function back() {
+      answers[step] = readValue();
+      validation.saved = false;
+      step--;
+      render();
+      focusHeading();
+    }
+
+    // Recurrence in distinct themes supports a hypothesis, never a psychometric score.
+    // Free text is preserved verbatim; this local version does not infer its meaning.
+    function analyze() {
+      const patterns = archetypes.map(item => ({ ...item, evidence: questions.flatMap((question, index) => {
+        if (question.kind || !question.options || !answers[index].selected.includes(item.id)) return [];
+        return [{ theme: question.theme, label: question.options.find(option => option[0] === item.id)[1] }];
+      }) })).filter(item => item.evidence.length >= 2);
+      patterns.sort((first, second) => second.evidence.length - first.evidence.length);
+      const leaders = patterns.filter(item => item.evidence.length === patterns[0].evidence.length);
+      const dominant = leaders.length === 1 ? leaders[0] : null;
+      const blocker = answers[6].selected[0] || 'outro';
+      return { patterns, dominant, blocker, motivation: answers[3].selected[0] || 'Não indicada nas opções; veja sua reflexão sobre o futuro.' };
+    }
+
+    function evidenceList(item) {
+      return `<ul>${item.evidence.map(evidence => `<li><strong>${evidence.theme}:</strong> “${esc(evidence.label)}”</li>`).join('')}</ul>`;
+    }
+
+    function blockerDescription(key) {
+      if (key === 'estrutura') return 'Você indicou uma restrição econômica ou responsabilidade essencial. Ela precisa ser considerada antes de atribuir a dificuldade a hábitos individuais. O texto abaixo registra seu contexto.';
+      if (key === 'outro') return 'Ainda não há uma hipótese específica de bloqueio. Sua resposta é o ponto de partida para aprofundar a conversa.';
+      return 'Este obstáculo foi indicado por você. A hipótese tem confiança limitada: ainda precisamos compreender sua frequência, seu contexto e suas consequências. Confirme ou ajuste essa leitura abaixo.';
+    }
+
+    function showResult() {
+      const analysis = analyze();
+      const suggestions = blockerActions[analysis.blocker];
+      if (!plan) {
+        plan = suggestions.map((action, index) => ({ action, suggestion: action, when: `Em até ${(index + 1) * 10} dias`, proof: '' }));
+      } else {
+        plan = plan.map((item, index) => ({ ...item, action: item.action === item.suggestion ? suggestions[index] : item.action, suggestion: suggestions[index] }));
+      }
+      document.querySelector('#quiz').hidden = true;
+      result.hidden = false;
+      const primary = analysis.dominant;
+      const headline = primary ? primary.name : (analysis.patterns.length ? 'Mais de um padrão em destaque' : 'Sem evidências suficientes para um arquétipo predominante');
+      const patterns = analysis.patterns.length ? analysis.patterns.map(item => `<article class="pattern-card"><h3>${item.name}${primary?.id === item.id ? ' · hipótese predominante' : ' · hipótese complementar'}</h3><p>${item.pattern}</p><p class="helper">Opções que você reconheceu em temas diferentes:</p>${evidenceList(item)}</article>`).join('') : '<p>Nenhum padrão se repetiu nas opções de temas diferentes. Seus relatos continuam importantes; uma conversa pode ajudar a aprofundar a leitura sem forçar uma classificação.</p>';
+      result.innerHTML = `<div class="eyebrow">Sua reflexão, seu próximo passo</div><div class="emoji" aria-hidden="true">🧭</div><h1 tabindex="-1">Seu Mapa Financeiro</h1>
+        <p class="helper">Uma leitura exploratória do que você compartilhou neste momento da vida.</p>
+        <div class="context"><strong>Como ler seu mapa:</strong> esta versão identifica recorrências apenas nas opções marcadas. Seus textos não são interpretados automaticamente. Os padrões são hipóteses com confiança limitada, a serem validadas por você. Uma resposta isolada não define um arquétipo.</div>
+        <section class="result-section"><div class="eyebrow">Padrão de comportamento</div><h2 class="result-headline">${headline}</h2><p>${primary ? primary.pattern : 'A leitura permanece aberta. Padrões diferentes podem coexistir, sem que um deles predomine.'}</p>${patterns}</section>
+        <section class="result-section"><h2>Sua motivação</h2><p class="motivation">${esc(analysis.motivation)}</p><blockquote>${esc(answers[3].text)}</blockquote><p class="helper">Motivação é o que você busca com o dinheiro. Ela não determina seu arquétipo.</p></section>
+        <div class="insight-grid"><section><h2>Forças para explorar</h2>${analysis.patterns.length ? `<ul>${analysis.patterns.map(item => `<li>${item.strength}</li>`).join('')}</ul>` : '<p>Releia seus exemplos e identifique uma escolha que já ajuda você. Ainda não há base para atribuir forças específicas.</p>'}<p class="helper">São possibilidades associadas aos comportamentos marcados. Confirme quais aparecem na sua experiência.</p></section>
+        <section><h2>Pontos de atenção</h2>${analysis.patterns.length ? `<ul>${analysis.patterns.map(item => `<li>${item.risk}</li>`).join('')}</ul>` : '<p>Observe o obstáculo que relatou e em que situações ele aparece.</p>'}<p class="helper">São riscos para investigar, não afirmações de que você apresenta todos eles.</p></section></div>
+        <section class="result-section"><h2>Obstáculo prioritário</h2><p><strong>${esc(questions[6].options.find(option => option[0] === analysis.blocker)[1])}</strong></p><p>${blockerDescription(analysis.blocker)}</p><blockquote>${esc(answers[6].text)}</blockquote><p class="helper">Base: seu relato e sua escolha, sem confirmação independente. Renda, oportunidades, desemprego, dívidas e responsabilidades familiares influenciam o que é possível fazer.</p></section>
+        <section class="result-section"><h2>Seu plano para os próximos 30 dias</h2><p class="helper">Ajuste as sugestões ao seu orçamento, tempo e responsabilidades. Defina um sinal simples de conclusão. Ao revisar respostas, as ações que você editou serão preservadas.</p>
+        <div class="plan-list">${plan.map((item, index) => `<fieldset class="plan-item"><legend>Ação ${index + 1}</legend><label for="plan-action-${index}">O que vou fazer</label><textarea id="plan-action-${index}" oninput="captureResult()">${esc(item.action)}</textarea><div class="plan-fields"><div><label for="plan-when-${index}">Até quando</label><input id="plan-when-${index}" type="text" value="${esc(item.when)}" oninput="captureResult()"></div><div><label for="plan-proof-${index}">Como vou acompanhar</label><input id="plan-proof-${index}" type="text" value="${esc(item.proof)}" placeholder="Ex.: uma conversa realizada" oninput="captureResult()"></div></div></fieldset>`).join('')}</div></section>
+        <section class="result-section"><h2>Essa leitura faz sentido para você?</h2><p class="helper">O que representa bem sua experiência e o que você mudaria nessa interpretação?</p>
+        <fieldset class="options validation-options"><legend>Sua percepção da leitura</legend>${[['sim', 'Faz sentido para mim'], ['ajustar', 'Quero ajustar a leitura'], ['incerto', 'Ainda não sei']].map(([value, label]) => `<label class="option"><input type="radio" name="validation" value="${value}" ${validation.choice === value ? 'checked' : ''} onchange="invalidateValidation()"><span>${label}</span></label>`).join('')}</fieldset>
+        <label class="field-label" for="feedback">Seus ajustes e observações</label><textarea id="feedback" placeholder="Registre o que manteria ou mudaria, inclusive nos padrões e no obstáculo sugeridos." oninput="invalidateValidation()">${esc(validation.text)}</textarea>
+        <div class="actions no-print"><button type="button" class="secondary" onclick="saveValidation()">Salvar validação</button></div><p id="validation-status" class="helper" role="status">${validation.saved ? 'Validação registrada nesta página. Seus ajustes serão incluídos na impressão e no CSV.' : 'Sua validação ainda não foi registrada. Os ajustes não alteram automaticamente as hipóteses acima.'}</p></section>
+        <details class="response-review"><summary>Rever tudo o que compartilhei</summary><dl>${questions.map((question, index) => `<dt>${question.theme}</dt><dd>${esc(answers[index].text)}${answers[index].selected.length ? `<ul>${answers[index].selected.map(value => `<li>${esc(question.options.find(option => option[0] === value)[1])}</li>`).join('')}</ul>` : ''}</dd>`).join('')}</dl></details>
+        <p class="method-note">Ferramenta exploratória de coaching e autoconhecimento. Os arquétipos não são um instrumento psicométrico validado nem um diagnóstico clínico. A leitura não promete resultados financeiros e não substitui orientação profissional quando necessária.</p>
+        <div class="actions no-print result-actions"><button type="button" class="secondary" onclick="reviewAnswers()">Revisar respostas</button><button type="button" class="secondary" onclick="restart()">Refazer</button><button type="button" class="secondary" onclick="printResult()">Imprimir</button><button type="button" onclick="downloadCSV()">Baixar CSV</button></div>`;
+    }
+
+    function captureResult() {
+      if (result.hidden) return;
+      plan = plan.map((item, index) => ({ ...item, action: document.querySelector(`#plan-action-${index}`).value, when: document.querySelector(`#plan-when-${index}`).value, proof: document.querySelector(`#plan-proof-${index}`).value }));
+      validation.choice = document.querySelector('input[name="validation"]:checked')?.value || '';
+      validation.text = document.querySelector('#feedback').value;
+    }
+
+    function invalidateValidation() {
+      captureResult();
+      validation.saved = false;
+      document.querySelector('#validation-status').textContent = 'Você alterou sua percepção. Salve a validação para registrar seus ajustes; eles não alteram automaticamente as hipóteses acima.';
+    }
+
+    function saveValidation() {
+      captureResult();
+      if (!validation.choice) {
+        document.querySelector('#validation-status').textContent = 'Escolha como percebe a leitura antes de salvar.';
+        return;
+      }
+      if (validation.choice === 'ajustar' && !validation.text.trim()) {
+        document.querySelector('#validation-status').textContent = 'Conte o que deseja ajustar para registrar sua validação.';
+        document.querySelector('#feedback').focus();
+        return;
+      }
+      validation.saved = true;
+      document.querySelector('#validation-status').textContent = 'Validação registrada nesta página. Seus ajustes serão incluídos na impressão e no CSV; as hipóteses acima permanecem disponíveis para comparação.';
+    }
+
+    function reviewAnswers() {
+      captureResult();
+      result.hidden = true;
+      document.querySelector('#quiz').hidden = false;
+      step = questions.length - 1;
+      render();
+      focusHeading();
+    }
+
+    function restart() {
+      step = -1;
+      answers = questions.map(() => ({ text: '', selected: [] }));
+      plan = null;
+      validation = { choice: '', text: '', saved: false };
+      result.hidden = true;
+      result.innerHTML = '';
+      document.querySelector('#quiz').hidden = false;
+      render();
+      focusHeading();
+    }
+
+    function printResult() {
+      captureResult();
+      window.print();
+    }
+
+    function preparePrint() {
+      if (result.hidden) return;
+      captureResult();
+      result.querySelectorAll('textarea, input[type="text"]').forEach(field => {
+        let copy = field.nextElementSibling;
+        if (!copy?.classList.contains('print-value')) {
+          copy = document.createElement('div');
+          copy.className = 'print-value';
+          copy.setAttribute('aria-hidden', 'true');
+          field.insertAdjacentElement('afterend', copy);
+        }
+        copy.textContent = field.value || 'Não preenchido';
+      });
+      const review = result.querySelector('.response-review');
+      reviewWasOpen = review.open;
+      review.open = true;
+    }
+
+    window.addEventListener('beforeprint', preparePrint);
+    window.addEventListener('afterprint', () => {
+      if (!result.hidden) result.querySelector('.response-review').open = reviewWasOpen;
+    });
+
+    function downloadCSV() {
+      captureResult();
+      const analysis = analyze();
+      const rows = [['Mapa Financeiro', 'Reflexão exploratória; hipóteses de confiança limitada, sem validação psicométrica.'], ['Tema', 'Resposta', 'Opções reconhecidas'], ...questions.map((question, index) => [question.theme, answers[index].text, answers[index].selected.map(value => question.options.find(option => option[0] === value)[1]).join(' | ')]), [], ['Arquétipo predominante', analysis.dominant?.name || (analysis.patterns.length ? 'Mais de um padrão em destaque' : 'Sem evidências suficientes')], ['Motivação', analysis.motivation], ['Obstáculo prioritário', questions[6].options.find(option => option[0] === analysis.blocker)[1]], ['Contexto e incertezas', blockerDescription(analysis.blocker)], [], ['Padrões e evidências', 'Forças possíveis', 'Riscos a investigar']];
+      analysis.patterns.forEach(item => rows.push([`${item.name}: ${item.evidence.map(evidence => `${evidence.theme}: ${evidence.label}`).join(' | ')}`, item.strength, item.risk]));
+      rows.push([], ['Plano de 30 dias', 'Ação', 'Até quando', 'Como acompanhar']);
+      plan.forEach((item, index) => rows.push([`Ação ${index + 1}`, item.action, item.when, item.proof]));
+      const validationLabels = { sim: 'Faz sentido para mim', ajustar: 'Quero ajustar a leitura', incerto: 'Ainda não sei' };
+      rows.push([], ['Validação', validationLabels[validation.choice] || 'Não informada', validation.saved ? 'Registrada' : 'Pendente'], ['Ajustes e observações', validation.text]);
+      // Formula-like cells must be read as text by spreadsheet programs.
+      const csvCell = value => {
+        const text = String(value ?? '');
+        const safe = /^[\s]*[=+@-]/.test(text) || /^[\t\r\n]/.test(text) ? `'${text}` : text;
+        return `"${safe.replaceAll('"', '""')}"`;
+      };
+      const csv = '\uFEFF' + rows.map(row => row.map(csvCell).join(';')).join('\r\n');
+      const now = new Date();
+      const pad = number => String(number).padStart(2, '0');
+      const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+      link.download = `mapa-financeiro_${stamp}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    }
+
+    render();
+  </script>
+</body>
+</html>
